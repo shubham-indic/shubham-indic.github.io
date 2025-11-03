@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest manifest-version="1" xmlns="http://www.tableau.com/xml/extension_manifest">
-  <extension id="com.shubham.scrollsync" extension-version="1.0.0">
+<manifest xmlns="http://www.tableau.com/xml/extension_manifest"
+          manifest-version="1.0">
+  <dashboard-extension id="com.shubham.scrollsync"
+                       version="1.0.0">
     <default-locale>en_US</default-locale>
     <name>Scroll Sync Extension</name>
     <description>Synchronize horizontal scrolling between two Tableau worksheets.</description>
     <author name="Shubham Indic"/>
     <url>https://shubham-indic.github.io/scroll-sync-extension/index.html</url>
-  </extension>
+  </dashboard-extension>
 </manifest>
