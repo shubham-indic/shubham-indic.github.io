@@ -1,0 +1,10 @@
+{
+  "manifest_version": 1,
+  "name": "Scroll Sync Extension",
+  "description": "Synchronize horizontal scrolling between two Tableau worksheets",
+  "version": "1.0.0",
+  "author": "Shubham Indic",
+  "scripts": ["script.js"],
+  "permissions": ["tableau"],
+  "main": "index.html"
+}
