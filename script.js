@@ -1,40 +1,82 @@
-tableau.extensions.initializeAsync().then(() => {
-  console.log("Scroll Sync Extension initialized");
+'use strict';
 
-  // wait for Tableau to finish rendering
-  setTimeout(() => {
-    const SHEET1_NAME = "SP-table-month";
-    const SHEET2_NAME = "Supply Plan Grand Total (Monthwise)";
+(function() {
+  tableau.extensions.initializeAsync().then(function() {
+    console.log("Scroll Sync Extension Initialized");
 
-    const findWorksheetDiv = (name) => {
-      const frames = document.querySelectorAll("iframe");
-      for (let frame of frames) {
-        if (frame.title.includes(name)) {
-          return frame.contentDocument.querySelector("div.tabCanvas");
-        }
-      }
-      return null;
-    };
+    // Names of the Tableau worksheets
+    const sheet1Name = "SP-table-month";
+    const sheet2Name = "Supply Plan Grand Total (Monthwise)";
 
-    const sheet1Div = findWorksheetDiv(SHEET1_NAME);
-    const sheet2Div = findWorksheetDiv(SHEET2_NAME);
+    const dashboard = tableau.extensions.dashboardContent.dashboard;
+    const sheet1 = dashboard.worksheets.find(ws => ws.name === sheet1Name);
+    const sheet2 = dashboard.worksheets.find(ws => ws.name === sheet2Name);
 
-    if (!sheet1Div || !sheet2Div) {
-      console.error("Worksheet divs not found—check sheet names or wait for rendering.");
+    if (!sheet1 || !sheet2) {
+      document.querySelector('.status').innerText =
+        "Error: One or both worksheets not found. Please check names in Tableau.";
       return;
     }
 
-    console.log("Worksheet divs found, enabling sync.");
-    let syncing = false;
+    // Function to wait for Tableau to render both worksheets inside iframes
+    function waitForIframes() {
+      const iframes = document.querySelectorAll('iframe');
+      if (iframes.length < 2) {
+        console.log("Waiting for Tableau to render worksheets...");
+        setTimeout(waitForIframes, 1000);
+        return;
+      }
 
-    const syncScroll = (source, target) => {
-      if (syncing) return;
-      syncing = true;
-      target.scrollLeft = source.scrollLeft;
-      setTimeout(() => (syncing = false), 10);
-    };
+      let iframe1, iframe2;
 
-    sheet1Div.addEventListener("scroll", () => syncScroll(sheet1Div, sheet2Div));
-    sheet2Div.addEventListener("scroll", () => syncScroll(sheet2Div, sheet1Div));
-  }, 2000);
-});
+      // Find the correct iframes by matching worksheet names
+      iframes.forEach(frame => {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        if (doc && doc.body && doc.body.innerText.includes(sheet1Name)) iframe1 = frame;
+        if (doc && doc.body && doc.body.innerText.includes(sheet2Name)) iframe2 = frame;
+      });
+
+      if (!iframe1 || !iframe2) {
+        console.log("Waiting for worksheet frames...");
+        setTimeout(waitForIframes, 1000);
+        return;
+      }
+
+      syncScrollBetween(iframe1, iframe2);
+    }
+
+    // Function to sync horizontal scrolls
+    function syncScrollBetween(frame1, frame2) {
+      const doc1 = frame1.contentDocument || frame1.contentWindow.document;
+      const doc2 = frame2.contentDocument || frame2.contentWindow.document;
+
+      let scrolling = false;
+
+      const onScroll = (sourceDoc, targetDoc) => {
+        if (scrolling) return;
+        scrolling = true;
+        const sourceScroll = sourceDoc.querySelector('.tab-scrollable');
+        const targetScroll = targetDoc.querySelector('.tab-scrollable');
+
+        if (sourceScroll && targetScroll) {
+          targetScroll.scrollLeft = sourceScroll.scrollLeft;
+        }
+        setTimeout(() => (scrolling = false), 50);
+      };
+
+      const s1 = doc1.querySelector('.tab-scrollable');
+      const s2 = doc2.querySelector('.tab-scrollable');
+
+      if (s1 && s2) {
+        s1.addEventListener('scroll', () => onScroll(doc1, doc2));
+        s2.addEventListener('scroll', () => onScroll(doc2, doc1));
+        document.querySelector('.status').innerText = "Scroll Sync Active ✅";
+      } else {
+        console.log("Scrollable elements not found, retrying...");
+        setTimeout(() => syncScrollBetween(frame1, frame2), 1000);
+      }
+    }
+
+    waitForIframes();
+  });
+})();
